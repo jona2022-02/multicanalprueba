@@ -22,6 +22,8 @@ Yo modelé eso en una tabla de configuración y un procedimiento almacenado. La 
 
 ## Arquitectura (cómo lo armé)
 
+Diagrama interactivo (animado): [ver en GitHub Pages](https://jona2022-02.github.io/multicanalprueba/architecture.html) · fuente en [`docs/architecture.html`](docs/architecture.html).
+
 Pensé el flujo en tres capas claras:
 
 ```

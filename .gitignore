@@ -21,7 +21,7 @@ App_Data/Logs/
 !App_Data/Logs/.gitkeep
 
 ## Local / privado
-docs/
+.archify/
 Web.config.local
 *.secrets.config
 
