@@ -137,6 +137,64 @@ Después pruebo `/Empresas?canal=XY`. No necesito duplicar `Empresas.aspx` ni me
 
 ---
 
+## Parte A — preguntas teóricas (mis respuestas)
+
+Acá dejo, en primera persona, lo que yo respondería en la parte teórica. Traté de ser breve y con criterio.
+
+### 1. Ciclo de vida de una página Web Forms. ¿Dónde cargo datos y qué pasa si no miro `IsPostBack`?
+
+Yo entiendo el ciclo típico así: **Init** → **Load** → eventos de controles → **PreRender** → **Render** (y después Unload).
+
+Cargo el listado en **Load**, y solo cuando **no** es postback (`Not IsPostBack`). Si en cada click del `Repeater` volviera a llamar al servicio, gastaría de más, podría pisar el estado de los controles y mezclar mal el ViewState.
+
+Si no verifico `IsPostBack`, en cada postback se me re-ejecuta la carga completa: más costo y comportamientos raros (selecciones que “saltan”, datos que se pisan, etc.).
+
+### 2. ViewState vs Session vs query string
+
+- **ViewState:** yo lo uso para el estado de la **misma página** entre postbacks. Sé que infla el HTML y que, si se debilita el MAC, se puede manipular; por eso nunca metería secretos ahí.  
+- **Session:** yo la uso para pasar datos **entre páginas** (acá, la empresa elegida). En InProc se me puede perder con un recycle del AppPool o si hay varios servidores sin estado compartido; tampoco guardaría API keys en Session.  
+- **Query string:** yo la uso para navegación visible, como `canal=AB`. Cualquiera la ve y la puede cambiar, así que solo pondría códigos/ids, nada sensible.
+
+### 3. Problemas de sesión (varios servidores, AppPool, iframe, Safari)
+
+- **Varios servidores:** con InProc cada máquina tiene su propia memoria. Yo movería la sesión a StateServer o SQLServer, o pediría sticky sessions en el balanceador.  
+- **Reciclaje del AppPool:** se me pierde la Session InProc. Por eso en Detalle, si no hay empresa en sesión, redirijo al listado en lugar de mostrar un error feo.  
+- **Iframe de otro dominio / Safari (iOS):** las cookies de terceros y `SameSite` me pueden cortar la cookie de sesión. Yo preferiría same-site; `SameSite=None; Secure` solo con HTTPS y si no hay de otra, o evitar depender de cookies cross-site.
+
+### 4. Consumir API REST desde .NET Framework (HttpClient, TLS, timeouts, `.Result`)
+
+- Yo reutilizo **un HttpClient** compartido para no saturar sockets.  
+- Fuerzo **TLS 1.2** con `ServicePointManager.SecurityProtocol` porque en Framework a veces hace falta.  
+- El **timeout** lo tomo de la configuración del canal.  
+- Evito `.Result` / `.Wait()` en el hilo de la página: me pueden generar **deadlock** con el SynchronizationContext. En el listado usé **`RegisterAsyncTask`**. Si en algún punto tuviera que ir síncrono, usaría `ConfigureAwait(False).GetAwaiter().GetResult()` con cuidado, no como costumbre.
+
+### 5. Invocar un SP con ADO.NET de forma segura
+
+Yo lo haría así:
+
+- `CommandType.StoredProcedure`.  
+- Parámetros tipados (`SqlParameter`); **nunca** concatenaría SQL a mano.  
+- `Using` en conexión, comando y reader para liberar bien.  
+- Transacciones (`SqlTransaction` / `TransactionScope`) cuando tenga varias escrituras que deban ir juntas. En esta prueba yo solo leo config con un SP puntual.
+
+### 6. Agregar un canal nuevo sin afectar los que ya están en producción
+
+Yo parametrizaría en BD (URL, key, menú, destino, timeout). El código solo consulta por canal; **no** agregaría `If canal = "XX"`.  
+Para probarlo: inserto la fila del canal nuevo, configuro su API key en el simulador, y hago smoke test de listado + menú + Session → Detalle, sin redeploy de la lógica de las páginas.
+
+### 7. Manejo de errores
+
+En los bordes (BD y HTTP) yo uso `Try/Catch`. Al usuario le muestro un mensaje controlado. El detalle técnico (exception, status) lo mando al **log** en `App_Data/Logs`. Con `customErrors` evito tirar stack traces a producción.
+
+### 8. Seguridad: XSS, inyección SQL, ViewState y qué no va en Session
+
+- **XSS:** yo uso `Server.HtmlEncode` en lo que muestro; no renderizo HTML crudo de terceros; confío en `requestValidation` como capa extra.  
+- **SQL injection:** solo parámetros / procedimientos almacenados; no armo SQL concatenando strings.  
+- **ViewState:** dejo el MAC activo y no guardo secretos ahí.  
+- **Session:** no guardo API keys, passwords ni datos muy sensibles; solo lo del flujo (empresa seleccionada y canal).
+
+---
+
 ## Decisiones que tomé (resumen)
 
 1. **Parametrizar por BD**, no por código, para no romper canales en producción al sumar uno nuevo.  
