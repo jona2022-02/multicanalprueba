@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Copiar valores locales a Web.config. No commitear secretos. -->
+<configuration>
+  <connectionStrings>
+    <add name="Multicanal"
+         connectionString="Data Source=.\SQLEXPRESS;Initial Catalog=Multicanal;Integrated Security=True;TrustServerCertificate=True"
+         providerName="System.Data.SqlClient" />
+  </connectionStrings>
+  <appSettings>
+    <add key="ApiKey.AB" value="key-canal-ab-demo" />
+    <add key="ApiKey.CJ" value="key-canal-cj-demo" />
+  </appSettings>
+</configuration>

@@ -1,0 +1,32 @@
+## Visual Studio
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+## Build
+[Bb]in/
+[Oo]bj/
+[Dd]ebug/
+[Rr]elease/
+
+## NuGet
+packages/
+*.nupkg
+
+## Logs
+*.log
+App_Data/Logs/
+!App_Data/Logs/.gitkeep
+
+## Local / privado
+docs/
+Web.config.local
+*.secrets.config
+
+## OS
+Thumbs.db
+Desktop.ini
+.DS_Store
+
