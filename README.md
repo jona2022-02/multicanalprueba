@@ -1,8 +1,8 @@
 # Multicanal — sitio de pagos por canal
 
-Hola. En este repo dejé la solución de la evaluación práctica: un sitio **ASP.NET Web Forms** en **VB.NET** (.NET Framework 4.8) que lista empresas de pago según el **canal** que viene en la URL. La idea que seguí es simple: **nada de reglas hardcodeadas por canal** (nada de `If canal = "AB"`). Lo que cambia entre canales vive en **SQL Server**, y el código solo lee esa configuración.
+Hola. En este repo dejé la solución de la evaluación práctica, un sitio con **ASP.NET Web Forms** en **VB.NET** utilizando .NET Framework 4.8 que lista empresas de pago según el **canal** que viene en la URL.
 
-Incluí dos canales de prueba, **AB** y **CJ**, con comportamientos distintos (sobre todo el menú), para demostrar que la misma página sirve a varios canales sin duplicar pantallas.
+Incluí dos canales de prueba, **AB** y **CJ**, con comportamientos distintos sobre todo el menú, para demostrar que la misma página sirve a varios canales sin duplicar pantallas.
 
 ---
 
@@ -20,9 +20,9 @@ Yo modelé eso en una tabla de configuración y un procedimiento almacenado. La 
 
 ---
 
-## Arquitectura (cómo lo armé)
+## Arquitectura 
 
-Diagrama interactivo (animado): [ver en GitHub Pages](https://jona2022-02.github.io/multicanalprueba/architecture.html) · fuente en [`docs/architecture.html`](docs/architecture.html).
+Diagrama interactivo: [ver en GitHub Pages](https://jona2022-02.github.io/multicanalprueba/architecture.html) · fuente en [`docs/architecture.html`](docs/architecture.html).
 
 Pensé el flujo en tres capas claras:
 
@@ -41,7 +41,7 @@ Pensé el flujo en tres capas claras:
                                                       (servicio simulado en el mismo sitio)
 ```
 
-### 1. Presentación (Web Forms)
+### 1. Presentación 
 - **`Empresas.aspx`**: listado en mosaico con un `Repeater`. Cargo datos solo cuando **no** es postback; el consumo del API lo hice con **`RegisterAsyncTask`** para no bloquear el hilo a lo bruto.
 - **`Detalle.aspx`**: muestra la empresa que guardé en **Session**. Si no hay sesión (o expiró), redirijo otra vez al listado.
 - **`Site.Master`**: el menú se muestra u oculta según `MostrarMenu` de la config. Misma master, sin una página distinta por canal.
@@ -56,7 +56,7 @@ Pensé el flujo en tres capas claras:
 - La URL en SQL es relativa (`/api/empresas`); el cliente la resuelve contra el host donde corre el sitio.
 
 ### 4. Errores y log
-- Al usuario solo le muestro mensajes claros (sin stack trace).
+- Al usuario solo le muestro mensajes claros para el usuario.
 - El detalle técnico lo escribo en `App_Data/Logs/multicanal-AAAAMMDD.log` cuando falla el consumo del servicio (por ejemplo API key inválida o timeout).
 
 ### Carpetas importantes
@@ -74,11 +74,11 @@ sql/              → script de base de datos
 
 ---
 
-## Cómo lo corro en mi máquina
+## Cómo se corre
 
-### Lo que necesito
+### Lo que utilice
 - Visual Studio con soporte ASP.NET / .NET Framework 4.8  
-- SQL Server Express (o el servidor que uses)  
+- SQL Server Express  
 - Ajustar el connection string en `Web.config` (en el repo va un placeholder; hay un `Web.config.example` de referencia)
 
 ### 1) Base de datos
@@ -91,7 +91,7 @@ sqlcmd -S .\SQLEXPRESS -E -i sql\01_configuracion_canal.sql
 (Si tu instancia no es `.\SQLEXPRESS`, cambio el servidor en el comando y en `Web.config`.)
 
 ### 2) Sitio
-Abro la solución en Visual Studio y doy **F5** (IIS Express).
+Abro la solución en Visual Studio y lo ejecuto con (IIS Express).
 
 Pruebas que hago yo:
 
@@ -197,11 +197,10 @@ En los bordes (BD y HTTP) yo uso `Try/Catch`. Al usuario le muestro un mensaje c
 
 ---
 
-## Decisiones que tomé (resumen)
+
 
 1. **Parametrizar por BD**, no por código, para no romper canales en producción al sumar uno nuevo.  
 2. **Session** solo para la empresa elegida (y el canal), no para secretos como la API key.  
 3. **Handler en el mismo sitio** para cumplir el servicio simulado sin complicar el arranque.  
 4. **Mensajes amigables + log** cuando el servicio falla (401, timeout, etc.).
 
-Si algo no levanta, lo primero que reviso es: connection string, que el script SQL se haya ejecutado, y que IIS Express esté corriendo el proyecto correcto.
